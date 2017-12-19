@@ -76,9 +76,9 @@ public class User implements Runnable{
 
         // dumb loop
         while (!jaxmpp.isConnected()){
-            System.out.println(myJID+" isConnected "+jaxmpp.isConnected());
+            System.out.println(myJID+" not connected. Waiting 5 sec ..");
             try {
-                Thread.sleep(1000);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -95,8 +95,12 @@ public class User implements Runnable{
             }
 
             try {
+                System.out.println("Waiting before disconnecting..");
+                Thread.sleep(3000);
                 jaxmpp.disconnect();
             } catch (JaxmppException e) {
+                e.printStackTrace();
+            }catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
@@ -110,7 +114,7 @@ public class User implements Runnable{
 
         jaxmpp.getProperties().setUserProperty(SessionObject.DOMAIN_NAME, Config.domain);
         jaxmpp.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(myJID));
-        jaxmpp.getProperties().setUserProperty(SessionObject.PASSWORD, "passw0rd");
+        jaxmpp.getProperties().setUserProperty(SessionObject.PASSWORD, "ildar");
 
 
         jaxmpp.getConnectionConfiguration().setDisableTLS(false);
