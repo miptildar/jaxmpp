@@ -23,16 +23,17 @@ import java.security.cert.X509Certificate;
 
 public class User implements Runnable{
 
-    String jid;
+    private String myJID;
 
-    Jaxmpp jaxmpp;
+    private String friendsJID;
 
-    String jid1 = "aws.ubuntuvm0@localhost";
-    String jid2 = "aws.ildar0@localhost";
+    private Jaxmpp jaxmpp;
 
-    public User(String jid){
+    public User(String jid, String friendsJID){
         System.out.println("Create User "+jid);
-        this.jid = jid;
+        this.myJID = jid;
+        this.friendsJID = friendsJID;
+
         jaxmpp = new Jaxmpp();
         configureConnection();
     }
@@ -41,7 +42,9 @@ public class User implements Runnable{
 
     @Override
     public void run() {
-        System.out.println("run() "+jid);
+        System.out.println("run() "+myJID);
+
+        // Presence is important! Because this is the way how XMPP server gets to know that the client is online
         try {
             tigase.jaxmpp.j2se.Presence.initialize(jaxmpp);
         } catch (JaxmppException e) {
@@ -55,7 +58,7 @@ public class User implements Runnable{
 
                     public void onMessageReceived(SessionObject sessionObject, Chat chat, Message message) {
                         try {
-                            System.out.println(jid+" RECEIVED "+message.getBody());
+                            System.out.println(myJID+" RECEIVED "+message.getBody());
                         } catch (XMLException e) {
                             e.printStackTrace();
                         }
@@ -64,41 +67,30 @@ public class User implements Runnable{
 
 
         try {
-            System.out.println(jid+" Logging in..");
+            System.out.println(myJID+" Logging in..");
             jaxmpp.login();
         } catch (JaxmppException e) {
             e.printStackTrace();
         }
 
 
-
-
-
-
-
+        // dumb loop
         while (!jaxmpp.isConnected()){
-            System.out.println(jid+" isConnected "+jaxmpp.isConnected());
+            System.out.println(myJID+" isConnected "+jaxmpp.isConnected());
             try {
-                Thread.sleep(3000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
+
         if (jaxmpp.isConnected()) {
-            String receiver = jid.equals(jid1) ? jid2 : jid1;
-            System.out.println("Sending message from "+jid+" to "+receiver);
-
+            System.out.println("Sending message from "+myJID+" to "+friendsJID);
 
             try {
-                jaxmpp.getModule(MessageModule.class).sendMessage(JID.jidInstance(receiver), "Test", "This is a test from "+jid);
+                jaxmpp.getModule(MessageModule.class).sendMessage(JID.jidInstance(friendsJID), "Test", "This is a test from "+myJID);
             } catch (JaxmppException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
@@ -108,18 +100,17 @@ public class User implements Runnable{
                 e.printStackTrace();
             }
         }
-
     }
 
 
     public void configureConnection(){
-        jaxmpp.getConnectionConfiguration().setServer("localhost");
-        jaxmpp.getConnectionConfiguration().setPort(5222);
+        jaxmpp.getConnectionConfiguration().setServer(Config.server);
+        jaxmpp.getConnectionConfiguration().setPort(Config.port);
         jaxmpp.getConnectionConfiguration().setUseSASL(true);
 
-        jaxmpp.getProperties().setUserProperty(SessionObject.DOMAIN_NAME, "localhost");
-        jaxmpp.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(jid));
-        jaxmpp.getProperties().setUserProperty(SessionObject.PASSWORD, "ildar");
+        jaxmpp.getProperties().setUserProperty(SessionObject.DOMAIN_NAME, Config.domain);
+        jaxmpp.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(myJID));
+        jaxmpp.getProperties().setUserProperty(SessionObject.PASSWORD, "passw0rd");
 
 
         jaxmpp.getConnectionConfiguration().setDisableTLS(false);
@@ -148,6 +139,8 @@ public class User implements Runnable{
     private SSLContext createSSLContext() throws KeyStoreException,
             NoSuchAlgorithmException, KeyManagementException, IOException, CertificateException {
 
+
+        // This TrustManager trusts all certificates. For development purposes only.
         TrustManager localTrustManager = new X509TrustManager() {
             @Override
             public X509Certificate[] getAcceptedIssuers() {
